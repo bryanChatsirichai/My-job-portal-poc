@@ -1,13 +1,13 @@
 # LinkedIn scraper setup (optional)
 
-LinkedIn listings are **not** fetched when users search the portal. They are ingested during `--sync`, same as every other source. You must run the unofficial [LinkedIn Jobs API](https://github.com/atharv01h/Linkedin-Jobs-Api) scraper as a **separate Node service** before syncing.
+LinkedIn listings are **not** fetched when users search the portal. They are ingested during `--sync`, same as every other source. You must run the unofficial [LinkedIn Jobs API](https://github.com/bryanChatsirichai/Linkedin-Jobs-Api) scraper as a **separate Node service** before syncing.
 
 ## 1. Start the scraper
 
 One-time clone; keep this terminal running during sync:
 
 ```bash
-git clone https://github.com/atharv01h/Linkedin-Jobs-Api.git
+git clone https://github.com/bryanChatsirichai/Linkedin-Jobs-Api.git
 cd Linkedin-Jobs-Api
 npm install
 npm run dev --workspace=backend   # listens on http://localhost:3000
@@ -23,7 +23,8 @@ Defaults work for local dev:
 |----------|---------|-------------|
 | `LINKEDIN_JOBS_API_URL` | `http://localhost:3000/api/v1` | Scraper API base URL |
 | `LINKEDIN_LOCATION` | `Singapore` | Location filter |
-| `LINKEDIN_KEYWORDS` | `""` | Optional search keywords |
+| `LINKEDIN_KEYWORDS` | `""` | Optional; comma-separated = one search per term |
+| `LINKEDIN_USE_ANALYZE` | `true` | Use `/jobs/analyze` for salary and skills in `insights` |
 | `LINKEDIN_DATE_SINCE_POSTED` | `past_week` | `past_24h`, `past_week`, or `past_month` |
 
 Set `LINKEDIN_JOBS_API_URL=` in `backend/.env` to disable LinkedIn sync.

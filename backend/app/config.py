@@ -78,7 +78,16 @@ class Settings(BaseSettings):
         default="http://localhost:3000/api/v1",
         description="Env LINKEDIN_JOBS_API_URL. Empty = LinkedIn adapter skipped.",
     )
-    linkedin_keywords: str = Field(default="", description="Env LINKEDIN_KEYWORDS")  # LINKEDIN_KEYWORDS
+    linkedin_keywords: str = Field(  # LINKEDIN_KEYWORDS
+        default="",
+        description="Env LINKEDIN_KEYWORDS. Comma-separated = one sync pass per term.",
+    )
+    linkedin_keywords_required: bool = False  # LINKEDIN_KEYWORDS_REQUIRED
+    linkedin_use_analyze: bool = True  # LINKEDIN_USE_ANALYZE — insights incl. salaryRange
+    linkedin_user_skills: str = Field(  # LINKEDIN_USER_SKILLS
+        default="",
+        description="Env LINKEDIN_USER_SKILLS. Comma-separated; used with analyze for match score.",
+    )
     linkedin_location: str = "Singapore"  # LINKEDIN_LOCATION
     linkedin_date_since_posted: str = "past_week"  # LINKEDIN_DATE_SINCE_POSTED
 

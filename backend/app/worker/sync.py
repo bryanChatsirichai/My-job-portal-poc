@@ -181,25 +181,36 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
     seen_ids: set[str] = set()
     fetched = 0
     upserted = 0
-    page = 0
 
-    while True:
-        if max_pages is not None and page >= max_pages:
-            break
+    contexts = adapter.fetch_contexts()
+    if not contexts:
+        logger.info("sync skipped for source=%s (no fetch contexts)", adapter.source_name)
+        return {"source": adapter.source_name, "skipped": "no_fetch_contexts"}
 
-        raw_jobs = await adapter.fetch_jobs(
-            FetchParams(page=page, limit=page_size, max_pages=max_pages)
-        )
-        if not raw_jobs:
-            break
+    for keywords in contexts:
+        page = 0
+        while True:
+            if max_pages is not None and page >= max_pages:
+                break
 
-        fetched += len(raw_jobs)
-        upserted += _upsert_batch(adapter, raw_jobs, seen_ids)
+            raw_jobs = await adapter.fetch_jobs(
+                FetchParams(
+                    page=page,
+                    limit=page_size,
+                    max_pages=max_pages,
+                    keywords=keywords,
+                )
+            )
+            if not raw_jobs:
+                break
 
-        # A partial page means the upstream API has no more results.
-        if len(raw_jobs) < page_size:
-            break
-        page += 1
+            fetched += len(raw_jobs)
+            upserted += _upsert_batch(adapter, raw_jobs, seen_ids)
+
+            # A partial page means the upstream API has no more results.
+            if len(raw_jobs) < page_size:
+                break
+            page += 1
 
     db = SessionLocal()
     try:
