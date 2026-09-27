@@ -8,7 +8,7 @@ All-in-one Singapore job aggregator with:
 - Jobicy ingestion adapter (remote jobs, no API key — [Jobicy API](https://jobicy.com/jobs-rss-feed))
 - Adzuna ingestion adapter (free API key — see [docs/adapters/adzuna.md](docs/adapters/adzuna.md))
 - LinkedIn ingestion adapter (self-hosted [LinkedIn Jobs API](https://github.com/atharv01h/Linkedin-Jobs-Api) scraper — sync only, not runtime)
-- JobSpy ingestion adapter (self-hosted [JobSpy](https://github.com/speedyapply/JobSpy) sidecar — sync only, not runtime)
+- JobSpy ingestion adapter (self-hosted [JobSpy](https://github.com/speedyapply/JobSpy) sidecar — [docs/adapters/jobspy.md](docs/adapters/jobspy.md))
 - Browser `localStorage` application tracking (POC)
 
 ## Quick start
@@ -32,7 +32,7 @@ Create `backend/.env` from [`backend/.env.example`](backend/.env.example). For a
 | `--init-db` | Creates SQLite tables in `jobportal.db` (run once, or after a DB/schema change) |
 | `--sync` | Fetches from each source into SQLite (page limits from `*_MAX_PAGES` in `.env`) |
 
-**Job sources:** see [docs/adapters/](docs/adapters/) — MyCareersFuture and Jobicy need no API keys; Adzuna needs `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; LinkedIn needs a self-hosted scraper on `localhost:3000`; JobSpy needs a self-hosted sidecar on `localhost:8001` (both enabled by default). Quick links: [MCF](docs/adapters/mycareersfuture.md) · [Jobicy](docs/adapters/jobicy.md) · [Adzuna](docs/adapters/adzuna.md) · [LinkedIn](docs/adapters/linkedin.md).
+**Job sources:** see [docs/adapters/](docs/adapters/) — MyCareersFuture and Jobicy need no API keys; Adzuna needs `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; LinkedIn needs a self-hosted scraper on `localhost:3000`; JobSpy needs a self-hosted sidecar on `localhost:8001` (both enabled by default). Quick links: [MCF](docs/adapters/mycareersfuture.md) · [Jobicy](docs/adapters/jobicy.md) · [Adzuna](docs/adapters/adzuna.md) · [LinkedIn](docs/adapters/linkedin.md) · [JobSpy](docs/adapters/jobspy.md).
 
 **2. Frontend**
 
@@ -100,7 +100,7 @@ LinkedIn requires a separate scraper service before sync. See [LinkedIn scraper 
 
 ### JobSpy (optional)
 
-JobSpy aggregates listings from Indeed, Glassdoor, Google, and Bayt (LinkedIn excluded to avoid overlap with the LinkedIn adapter). It runs as a **separate FastAPI sidecar** in your local JobSpy clone — the portal worker calls it over HTTP during sync only.
+JobSpy aggregates listings from configured boards (Indeed, LinkedIn, Glassdoor, Google, Bayt, etc. — set in the JobSpy repo `.env`). It runs as a **separate FastAPI sidecar** in your local JobSpy clone — the portal worker calls it over HTTP during sync only. Full reference: [docs/adapters/jobspy.md](docs/adapters/jobspy.md).
 
 **One-time sidecar setup** (in your JobSpy repo, e.g. `D:\Projects\JobSpy`):
 

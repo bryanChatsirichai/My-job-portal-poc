@@ -2,11 +2,12 @@
 
 This document describes how the Smart Job Portal POC gathers job listings from external job-board APIs, normalizes them into a single schema, stores them locally, and serves them to the React frontend.
 
-**Current state (POC):** Four job sources:
+**Current state (POC):** Six job sources:
 - **MyCareersFuture** — public API, no key required
 - **Jobicy** — public API, no key required ([Jobicy API](https://jobicy.com/jobs-rss-feed))
 - **Adzuna** — official API (Singapore), requires free API key from [developer.adzuna.com](https://developer.adzuna.com)
-- **LinkedIn** — self-hosted [LinkedIn Jobs API](https://github.com/atharv01h/Linkedin-Jobs-Api) scraper (sync only)
+- **LinkedIn** — self-hosted [LinkedIn Jobs API](https://github.com/bryanChatsirichai/Linkedin-Jobs-Api) scraper (sync only)
+- **JobSpy** — self-hosted JobSpy `jobspy_api` sidecar (sync only; rows stored per board, e.g. `indeed`, `linkedin`)
 
 ---
 
@@ -113,6 +114,20 @@ The adapter is **only registered** when both env vars are set. Without keys, syn
 
 Full reference: [adzuna.md](../adapters/adzuna.md)
 
+### JobSpy (sidecar)
+
+| Item | Value |
+|------|--------|
+| File | `backend/app/adapters/jobspy/adapter.py` |
+| API | `GET {JOBSPY_API_URL}/jobs/search?page=N` (0-based search-term index) |
+| Auth | None — requires self-hosted sidecar (`JOBSPY_API_URL`, default `http://localhost:8001/v1`) |
+| Pagination | One worker page = one search term; `JOBSPY_MAX_PAGES` caps the last term index (inclusive) |
+| Source ID | Per-board `site` field → `source` (`indeed`, `linkedin`, …) |
+
+The adapter is **only registered** when `JOBSPY_ENABLED` is true and `JOBSPY_API_URL` is non-empty.
+
+Full reference: [jobspy.md](../adapters/jobspy.md)
+
 ### Adding more sources
 
 Register new adapter classes in `get_adapters()` in `backend/app/worker/sync.py`:
@@ -173,7 +188,7 @@ Each source has an optional cap in `backend/.env` (`backend/app/config.py`). Whe
 | `LINKEDIN_MAX_PAGES` | LinkedIn |
 | `JOBSPY_MAX_PAGES` | JobSpy (search terms, not API pages) |
 
-The worker loops `page = 0, 1, …` until `page >= *_MAX_PAGES` or the source returns no more results (`backend/app/worker/sync.py`).
+The worker loops `page = 0, 1, …` until the cap is reached or the source returns no more results (`backend/app/worker/sync.py`). **JobSpy** uses `page > JOBSPY_MAX_PAGES` (last 0-based search-term index, inclusive).
 
 | Source | Default page size | `*_MAX_PAGES=2` ≈ max jobs |
 |--------|-------------------|----------------------------|
@@ -181,6 +196,9 @@ The worker loops `page = 0, 1, …` until `page >= *_MAX_PAGES` or the source re
 | Jobicy | 200 (`JOBICY_PAGE_SIZE`) | `1` → 100 jobs; `2` → 200 (API max) |
 | Adzuna | 50 (`ADZUNA_PAGE_SIZE`) | ~100 |
 | LinkedIn | 70 (`LINKEDIN_PAGE_SIZE`) | ~140 (requires self-hosted scraper on `localhost:3000`) |
+| JobSpy | 1 (`JOBSPY_PAGE_SIZE`) | **N search terms**, not job count (`JOBSPY_MAX_PAGES=2` → 3 terms: pages 0–2). Requires sidecar on `localhost:8001` |
+
+**JobSpy:** one sidecar request per search term; see [jobspy.md](../adapters/jobspy.md).
 
 **Jobicy:** one API call per sync; `count` is `100 × JOBICY_MAX_PAGES` (1→100, 2→200), or **200** when `JOBICY_MAX_PAGES` is unset. Optional filters: `JOBICY_GEO`, `JOBICY_INDUSTRY`, `JOBICY_TAG`.
 

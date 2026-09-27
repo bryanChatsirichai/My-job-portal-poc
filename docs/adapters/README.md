@@ -8,6 +8,7 @@ Each adapter fetches listings from an external API, normalizes them, and upserts
 | Jobicy | None | [jobicy.md](./jobicy.md) | `backend/app/adapters/jobicy/` |
 | Adzuna | Free key | [adzuna.md](./adzuna.md) | `backend/app/adapters/adzuna/` |
 | LinkedIn | Self-hosted scraper | [linkedin.md](./linkedin.md) | `backend/app/adapters/linkedin/` |
+| JobSpy | Self-hosted sidecar | [jobspy.md](./jobspy.md) | `backend/app/adapters/jobspy/` |
 
 ## Quick sync (all sources)
 

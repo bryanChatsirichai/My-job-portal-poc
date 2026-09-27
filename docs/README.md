@@ -26,6 +26,7 @@ Setup and API reference for each ingestion adapter:
 | Jobicy | None | [adapters/jobicy.md](adapters/jobicy.md) |
 | Adzuna | Free key | [adapters/adzuna.md](adapters/adzuna.md) |
 | LinkedIn | Self-hosted scraper | [adapters/linkedin.md](adapters/linkedin.md) |
+| JobSpy | Self-hosted sidecar | [adapters/jobspy.md](adapters/jobspy.md) |
 
 See [adapters/README.md](adapters/README.md) for a quick overview and sync command.
 
