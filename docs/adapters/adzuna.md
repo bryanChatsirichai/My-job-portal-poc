@@ -24,7 +24,7 @@ The adapter is **only registered** when both variables are set. Without keys, Ad
 
 ```bash
 cd backend
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
 ## API
@@ -63,6 +63,7 @@ JSON with a `results` array.
 | App ID | `adzuna_app_id` / `ADZUNA_APP_ID` | `""` (disabled) |
 | App key | `adzuna_app_key` / `ADZUNA_APP_KEY` | `""` (disabled) |
 | Page size | `adzuna_page_size` / `ADZUNA_PAGE_SIZE` | `50` |
+| Max pages | `ADZUNA_MAX_PAGES` | unset = unlimited |
 
 Run commands from `backend/` so `.env` is loaded correctly.
 
@@ -72,8 +73,8 @@ The worker uses 0-based pages internally; the adapter converts to Adzuna's 1-bas
 
 | Mode | Pages | Approx. jobs |
 |------|-------|--------------|
-| `--max-pages 2` | 2 | up to **~100** (2 × 50) |
-| Full `--sync` | all | until API exhausted |
+| `ADZUNA_MAX_PAGES=2` | 2 | up to **~100** (2 × 50) |
+| `ADZUNA_MAX_PAGES` unset | all | until API exhausted |
 
 **Expiry warning:** limited sync may mark unfetched Adzuna jobs as expired in SQLite.
 
@@ -106,7 +107,7 @@ Apply URL fallback: `https://www.adzuna.sg/details/{id}`
 ## Notes
 
 - Salaries stored as **annual SGD** when provided.
-- Rate limits apply per developer account — use `--max-pages` for testing.
+- Rate limits apply per developer account — use `ADZUNA_MAX_PAGES` for testing.
 - No search filters yet — paginated Singapore listings only.
 
 See also: [mycareersfuture.md](./mycareersfuture.md) · [job-ingestion.md](../architecture/job-ingestion.md)

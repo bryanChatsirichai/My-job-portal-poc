@@ -21,16 +21,16 @@ All-in-one Singapore job aggregator with:
 cd backend
 uv sync                       # install Python deps into .venv
 uv run python -m app.worker --init-db
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
-Create `backend/.env` if needed (see [Environment](#environment) below).
+Create `backend/.env` from [`backend/.env.example`](backend/.env.example). For a fast POC sync, uncomment `*_MAX_PAGES=2` in `.env` (see [Refreshing job data](#refreshing-job-data)).
 
 | Command | Purpose |
 |---------|---------|
 | `uv sync` | Creates `.venv` and installs dependencies from `pyproject.toml` |
 | `--init-db` | Creates SQLite tables in `jobportal.db` (run once, or after a DB/schema change) |
-| `--sync --max-pages 2` | Fetches up to 2 **pages per source** into SQLite (see [Refreshing job data](#refreshing-job-data)) |
+| `--sync` | Fetches from each source into SQLite (page limits from `*_MAX_PAGES` in `.env`) |
 
 **Job sources:** see [docs/adapters/](docs/adapters/) — MyCareersFuture and Jobicy need no API keys; Adzuna needs `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; LinkedIn needs a self-hosted scraper on `localhost:3000`; JobSpy needs a self-hosted sidecar on `localhost:8001` (both enabled by default). Quick links: [MCF](docs/adapters/mycareersfuture.md) · [Jobicy](docs/adapters/jobicy.md) · [Adzuna](docs/adapters/adzuna.md) · [LinkedIn](docs/adapters/linkedin.md).
 
@@ -72,7 +72,7 @@ External APIs  →  sync worker (--sync)  →  jobportal.db  →  FastAPI  →  
 
 When you search or open a job card, FastAPI queries the local database. External APIs are contacted only when you run the sync worker.
 
-See [job ingestion architecture](docs/architecture/job-ingestion.md) for the full pipeline, sync behaviour, and `--max-pages` expiry rules.
+See [job ingestion architecture](docs/architecture/job-ingestion.md) for the full pipeline, sync behaviour, and `*_MAX_PAGES` expiry rules.
 
 ### Refreshing job data
 
@@ -80,19 +80,15 @@ Re-run sync when you want fresher listings. No need to restart `uvicorn` — rel
 
 ```bash
 cd backend
-# Quick refresh (POC default — limited pages per source)
-uv run python -m app.worker --sync --max-pages 2
-
-# Full refresh (all pages until each source is exhausted — can be thousands of jobs)
 uv run python -m app.worker --sync
 ```
 
-| Flag | Meaning |
-|------|---------|
+| Setting | Meaning |
+|---------|---------|
 | `--sync` | Fetch from each registered source and upsert into SQLite |
-| `--max-pages N` | Stop after **N pages per source** (not N jobs total). Omit for a full sync |
+| `MCF_MAX_PAGES`, `ADZUNA_MAX_PAGES`, … in `.env` | Cap pages **per source** (omit = unlimited full sync) |
 
-Use `--max-pages 2` for fast local testing; use full `--sync` when you want a complete dataset. Per-source page sizes and expiry behaviour are documented in [job ingestion architecture](docs/architecture/job-ingestion.md).
+For fast local testing, set e.g. `MCF_MAX_PAGES=2` in `backend/.env`. Remove or comment out `*_MAX_PAGES` for a full refresh (can be thousands of jobs). Per-source page sizes and expiry behaviour are documented in [job ingestion architecture](docs/architecture/job-ingestion.md).
 
 **JobSpy:** start the sidecar on port 8001 before syncing — see [JobSpy (optional)](#jobspy-optional).
 
@@ -120,11 +116,8 @@ uv pip install -e .
 cd D:\Projects\JobSpy
 uv run uvicorn jobspy_api.main:app --port 8001
 
-# Terminal 2 — sync (POC: 2 search terms)
+# Terminal 2 — sync
 cd backend
-uv run python -m app.worker --sync --max-pages 2
-
-# Full refresh (all 36 search terms — can take 1–2+ hours)
 uv run python -m app.worker --sync
 ```
 
@@ -133,8 +126,9 @@ uv run python -m app.worker --sync
 | `JOBSPY_ENABLED` | `true` | Set `false` to skip JobSpy during sync |
 | `JOBSPY_API_URL` | `http://localhost:8001/v1` | Sidecar base URL |
 | `JOBSPY_PAGE_SIZE` | `1` | Term-based pagination (one worker page = one search term) |
+| `JOBSPY_MAX_PAGES` | unset | Max search terms per sync (omit = all terms; can take 1–2+ hours) |
 
-For JobSpy, `--max-pages N` means **N search terms** (not N API pages like other sources). Sidecar health check: `http://localhost:8001/health`.
+For JobSpy, `JOBSPY_MAX_PAGES` means **N search terms** (not N API pages like other sources). Sidecar health check: `http://localhost:8001/health`.
 
 Configure scrape behaviour in the JobSpy repo — copy `D:\Projects\JobSpy\.env.example` to `.env` and edit `JOBSPY_SITE_NAMES`, `JOBSPY_SEARCH_TERMS`, `JOBSPY_RESULTS_WANTED`, `JOBSPY_HOURS_OLD`, etc. (loaded by `jobspy_api/config.py` and `scrape_sg.py`). When using both JobSpy and the LinkedIn adapter, set `JOBSPY_SITE_NAMES=indeed,glassdoor,google,bayt` to avoid duplicate LinkedIn listings.
 
@@ -157,7 +151,7 @@ Configure scrape behaviour in the JobSpy repo — copy `D:\Projects\JobSpy\.env.
 
 ## Environment
 
-- **Backend:** create `backend/.env` from [`backend/.env.example`](backend/.env.example). Toggle sources with `MCF_ENABLED`, `JOBICY_ENABLED`, `ADZUNA_ENABLED`, `LINKEDIN_ENABLED`, `JOBSPY_ENABLED`; tune fetch size with `*_PAGE_SIZE`.
+- **Backend:** create `backend/.env` from [`backend/.env.example`](backend/.env.example). Toggle sources with `*_ENABLED`; tune batch size with `*_PAGE_SIZE` and sync depth with `*_MAX_PAGES` (unset = full sync per source).
 - **Jobicy (optional):** no API key. Uncomment filters in `backend/.env.example` to narrow remote listings, e.g. `JOBICY_GEO=singapore`, `JOBICY_INDUSTRY=engineering`, `JOBICY_TAG=python`.
 - **Job sources:** [docs/adapters/](docs/adapters/) — setup and API reference per adapter.
 - **Frontend:** optional `frontend/.env` — leave `VITE_API_BASE_URL` empty so requests use the Vite `/api` proxy in dev.

@@ -15,7 +15,7 @@ No configuration needed. MyCareersFuture is **always registered** and syncs on e
 ```bash
 cd backend
 uv run python -m app.worker --init-db   # first time only
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
 ## API
@@ -50,21 +50,22 @@ None.
 |---------|----------|---------|
 | Page size | `mcf_page_size` in `backend/app/config.py` | `100` |
 | Env override | `MCF_PAGE_SIZE` in `backend/.env` | — |
+| Max pages | `MCF_MAX_PAGES` in `backend/.env` | unset = unlimited |
 
 ## Pagination
 
 Stops when:
 
-1. `--max-pages N` reached (if set)
+1. `MCF_MAX_PAGES` reached (if set in `.env`)
 2. API returns empty `results`
 3. Fewer jobs than `limit` on a page
 
 | Mode | Pages | Approx. jobs |
 |------|-------|--------------|
-| `--max-pages 2` | 2 | up to **~200** (2 × 100) |
-| Full `--sync` | all | until API exhausted (tens of thousands possible) |
+| `MCF_MAX_PAGES=2` | 2 | up to **~200** (2 × 100) |
+| `MCF_MAX_PAGES` unset | all | until API exhausted (tens of thousands possible) |
 
-**Expiry warning:** with `--max-pages 2`, jobs not in those pages may be marked expired in SQLite even though they still exist on MCF. Use full `--sync` for an accurate catalog.
+**Expiry warning:** with `MCF_MAX_PAGES=2`, jobs not in those pages may be marked expired in SQLite even though they still exist on MCF. Leave `MCF_MAX_PAGES` unset for an accurate catalog.
 
 ## Data mapping
 

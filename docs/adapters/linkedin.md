@@ -47,7 +47,7 @@ Set `LINKEDIN_JOBS_API_URL=` (empty) to disable the adapter.
 
 ```bash
 cd backend
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
 The scraper must be reachable. Sync uses a **120 second** HTTP timeout per page.
@@ -61,7 +61,7 @@ GET http://localhost:3000/api/v1/jobs/search?location=Singapore&page=2
 
 | Parameter | Description |
 |-----------|-------------|
-| `page` | **1-based** page number (`--max-pages 2` → pages 1 and 2) |
+| `page` | **1-based** page number (`LINKEDIN_MAX_PAGES=2` → pages 1 and 2) |
 | `location` | From `LINKEDIN_LOCATION` (default `Singapore`) |
 | `keywords` | Optional, from `LINKEDIN_KEYWORDS` |
 | `dateSincePosted` | Optional, from `LINKEDIN_DATE_SINCE_POSTED` |
@@ -81,7 +81,7 @@ JSON with `jobs` array (and `success` flag).
 
 | Mode | Pages | Approx. jobs |
 |------|-------|--------------|
-| `--max-pages 2` | 2 | up to **~140** (2 × 70) |
+| `LINKEDIN_MAX_PAGES=2` | 2 | up to **~140** (2 × 70) |
 | Full `--sync` | all | until scraper returns no more |
 
 ## Data mapping

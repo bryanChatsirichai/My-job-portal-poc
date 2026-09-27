@@ -13,7 +13,7 @@ Each adapter fetches listings from an external API, normalizes them, and upserts
 
 ```bash
 cd backend
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
-`--max-pages` caps pages **per source** — use for local dev. See [job-ingestion.md](../architecture/job-ingestion.md) for the full pipeline.
+`*_MAX_PAGES` in `backend/.env` caps pages **per source** — use for local dev. See [job-ingestion.md](../architecture/job-ingestion.md) for the full pipeline.
