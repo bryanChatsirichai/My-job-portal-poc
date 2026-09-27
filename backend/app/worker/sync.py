@@ -33,6 +33,14 @@ _PAGE_SIZE_BY_SOURCE: dict[str, int] = {
     "mycareersfuture": settings.mcf_page_size,
 }
 
+_MAX_PAGES_BY_SOURCE: dict[str, int | None] = {
+    "adzuna": settings.adzuna_max_pages,
+    "jobicy": settings.jobicy_max_pages,
+    "linkedin": settings.linkedin_max_pages,
+    "jobspy": settings.jobspy_max_pages,
+    "mycareersfuture": settings.mcf_max_pages,
+}
+
 
 class SyncResult(TypedDict, total=False):
     """Summary returned by ``sync_source`` / ``sync_all``."""
@@ -130,6 +138,11 @@ def _page_size(adapter: JobSourceAdapter) -> int:
     return _PAGE_SIZE_BY_SOURCE.get(adapter.source_name, settings.mcf_page_size)
 
 
+def _max_pages(adapter: JobSourceAdapter) -> int | None:
+    """Return the configured page cap for a source (``None`` = unlimited)."""
+    return _MAX_PAGES_BY_SOURCE.get(adapter.source_name)
+
+
 def _upsert_batch(adapter: JobSourceAdapter, raw_jobs: list[dict], seen_ids: set[str]) -> int:
     """Normalize and persist one page of raw jobs; track IDs seen this run."""
     db = SessionLocal()
@@ -145,12 +158,12 @@ def _upsert_batch(adapter: JobSourceAdapter, raw_jobs: list[dict], seen_ids: set
     return upserted
 
 
-async def sync_source(adapter: JobSourceAdapter, max_pages: int | None = None) -> SyncResult:
+async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
     """Fetch, normalize, and upsert all pages for one job source.
 
     Paginates until the adapter returns an empty page, a short page (fewer
-    results than ``limit``), or ``max_pages`` is reached. Jobs active in the
-    DB but absent from this run are marked expired afterward.
+    results than ``limit``), or the source ``*_MAX_PAGES`` env cap is reached.
+    Jobs active in the DB but absent from this run are marked expired afterward.
 
     Returns a ``skipped`` result when called directly with an unconfigured
     credential-gated adapter (defensive guard; ``get_adapters`` normally
@@ -164,6 +177,7 @@ async def sync_source(adapter: JobSourceAdapter, max_pages: int | None = None) -
         return {"source": adapter.source_name, "skipped": "not_configured"}
 
     page_size = _page_size(adapter)
+    max_pages = _max_pages(adapter)
     seen_ids: set[str] = set()
     fetched = 0
     upserted = 0
@@ -198,7 +212,7 @@ async def sync_source(adapter: JobSourceAdapter, max_pages: int | None = None) -
     return stats
 
 
-async def sync_all(max_pages: int | None = None) -> list[SyncResult]:
+async def sync_all() -> list[SyncResult]:
     """Run ``sync_source`` for every registered adapter.
 
     Failures are isolated per source — one adapter error does not block the
@@ -207,7 +221,7 @@ async def sync_all(max_pages: int | None = None) -> list[SyncResult]:
     results: list[SyncResult] = []
     for adapter in get_adapters():
         try:
-            stats = await sync_source(adapter, max_pages=max_pages)
+            stats = await sync_source(adapter)
             results.append({"source": adapter.source_name, **stats})
         except Exception:
             logger.exception("sync failed for source %s", adapter.source_name)

@@ -5,7 +5,7 @@ Endpoint: ``GET /api/v2/remote-jobs``
 
 No API key required. The upstream API returns up to 200 jobs in a single
 response with no real pagination — ``fetch_jobs`` only runs on page 0 and
-uses ``max_pages`` to cap the requested ``count``.
+uses ``FetchParams.max_pages`` (from ``JOBICY_MAX_PAGES``) to cap the requested ``count``.
 """
 
 import httpx
@@ -17,11 +17,11 @@ from app.models.schemas import CanonicalJobInput, LocationSchema
 
 JOBICY_BASE_URL = "https://jobicy.com/api/v2/remote-jobs"
 API_MAX_COUNT = 200  # Hard cap enforced by the Jobicy API.
-COUNT_PER_PAGE = 100  # One sync ``max_pages`` unit maps to 100 jobs.
+COUNT_PER_PAGE = 100  # One ``JOBICY_MAX_PAGES`` unit maps to 100 jobs.
 
 
 def _resolve_count(max_pages: int | None) -> int:
-    """Translate sync ``max_pages`` into the Jobicy ``count`` query parameter."""
+    """Translate ``JOBICY_MAX_PAGES`` into the Jobicy ``count`` query parameter."""
     if max_pages is None:
         return API_MAX_COUNT
     return min(max_pages * COUNT_PER_PAGE, API_MAX_COUNT)

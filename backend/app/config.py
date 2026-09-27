@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     linkedin_page_size: int = 70  # LINKEDIN_PAGE_SIZE
     jobspy_page_size: int = 1  # JOBSPY_PAGE_SIZE — term pagination; only empty pages stop sync
 
+    # --- Sync page limits (unset = unlimited; fetch until source exhausted) ---
+    mcf_max_pages: int | None = Field(default=None, description="Env MCF_MAX_PAGES")  # MCF_MAX_PAGES
+    adzuna_max_pages: int | None = Field(default=None, description="Env ADZUNA_MAX_PAGES")
+    jobicy_max_pages: int | None = Field(default=None, description="Env JOBICY_MAX_PAGES")
+    linkedin_max_pages: int | None = Field(default=None, description="Env LINKEDIN_MAX_PAGES")
+    jobspy_max_pages: int | None = Field(default=None, description="Env JOBSPY_MAX_PAGES")
+
     # --- Adzuna (optional) ---
     # Default "" disables Adzuna; set ADZUNA_APP_ID and ADZUNA_APP_KEY in backend/.env to enable sync.
     adzuna_app_id: str = Field(  # ADZUNA_APP_ID

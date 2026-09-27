@@ -21,7 +21,7 @@ class FetchParams:
 
     page: int = 0
     limit: int = 100
-    max_pages: int | None = None
+    max_pages: int | None = None  # from source *_MAX_PAGES in settings; passed to Jobicy for count
 
 
 class JobSourceAdapter(ABC):
