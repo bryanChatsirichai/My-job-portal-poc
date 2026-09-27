@@ -41,12 +41,14 @@ class Settings(BaseSettings):
     jobicy_enabled: bool = True  # JOBICY_ENABLED
     adzuna_enabled: bool = True  # ADZUNA_ENABLED
     linkedin_enabled: bool = True  # LINKEDIN_ENABLED
+    jobspy_enabled: bool = True  # JOBSPY_ENABLED
 
     # --- Sync page sizes ---
     mcf_page_size: int = 100  # MCF_PAGE_SIZE
     adzuna_page_size: int = 50  # ADZUNA_PAGE_SIZE
     jobicy_page_size: int = 200  # JOBICY_PAGE_SIZE
     linkedin_page_size: int = 70  # LINKEDIN_PAGE_SIZE
+    jobspy_page_size: int = 1  # JOBSPY_PAGE_SIZE — term pagination; only empty pages stop sync
 
     # --- Adzuna (optional) ---
     # Default "" disables Adzuna; set ADZUNA_APP_ID and ADZUNA_APP_KEY in backend/.env to enable sync.
@@ -72,6 +74,12 @@ class Settings(BaseSettings):
     linkedin_keywords: str = Field(default="", description="Env LINKEDIN_KEYWORDS")  # LINKEDIN_KEYWORDS
     linkedin_location: str = "Singapore"  # LINKEDIN_LOCATION
     linkedin_date_since_posted: str = "past_week"  # LINKEDIN_DATE_SINCE_POSTED
+
+    # --- JobSpy scraper (optional self-hosted sidecar) ---
+    jobspy_api_url: str = Field(  # JOBSPY_API_URL
+        default="http://localhost:8001/v1",
+        description="Env JOBSPY_API_URL. Empty = JobSpy adapter skipped.",
+    )
 
     @property
     def database_backend(self) -> str:

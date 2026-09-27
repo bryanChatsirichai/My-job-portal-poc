@@ -15,6 +15,7 @@ from typing import TypedDict
 from app.adapters.adzuna.adapter import AdzunaAdapter
 from app.adapters.base import FetchParams, JobSourceAdapter
 from app.adapters.jobicy.adapter import JobicyAdapter
+from app.adapters.jobspy.adapter import JobSpyAdapter
 from app.adapters.linkedin.adapter import LinkedInAdapter
 from app.adapters.mycareersfuture.adapter import MyCareersFutureAdapter
 from app.config import settings
@@ -28,6 +29,7 @@ _PAGE_SIZE_BY_SOURCE: dict[str, int] = {
     "adzuna": settings.adzuna_page_size,
     "jobicy": settings.jobicy_page_size,
     "linkedin": settings.linkedin_page_size,
+    "jobspy": settings.jobspy_page_size,
     "mycareersfuture": settings.mcf_page_size,
 }
 
@@ -80,6 +82,14 @@ def get_adapters() -> list[JobSourceAdapter]:
         label="LinkedIn",
         env_flag="LINKEDIN_ENABLED",
         missing_config_hint="set LINKEDIN_JOBS_API_URL",
+    )
+    _register_credential_gated(
+        adapters,
+        enabled=settings.jobspy_enabled,
+        adapter_cls=JobSpyAdapter,
+        label="JobSpy",
+        env_flag="JOBSPY_ENABLED",
+        missing_config_hint="set JOBSPY_API_URL",
     )
     return adapters
 
@@ -149,6 +159,8 @@ async def sync_source(adapter: JobSourceAdapter, max_pages: int | None = None) -
     if adapter.source_name == "adzuna" and not AdzunaAdapter.is_configured():
         return {"source": adapter.source_name, "skipped": "not_configured"}
     if adapter.source_name == "linkedin" and not LinkedInAdapter.is_configured():
+        return {"source": adapter.source_name, "skipped": "not_configured"}
+    if adapter.source_name == "jobspy" and not JobSpyAdapter.is_configured():
         return {"source": adapter.source_name, "skipped": "not_configured"}
 
     page_size = _page_size(adapter)

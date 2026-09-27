@@ -8,6 +8,7 @@ All-in-one Singapore job aggregator with:
 - Jobicy ingestion adapter (remote jobs, no API key — [Jobicy API](https://jobicy.com/jobs-rss-feed))
 - Adzuna ingestion adapter (free API key — see [docs/adapters/adzuna.md](docs/adapters/adzuna.md))
 - LinkedIn ingestion adapter (self-hosted [LinkedIn Jobs API](https://github.com/atharv01h/Linkedin-Jobs-Api) scraper — sync only, not runtime)
+- JobSpy ingestion adapter (self-hosted [JobSpy](https://github.com/speedyapply/JobSpy) sidecar — sync only, not runtime)
 - Browser `localStorage` application tracking (POC)
 
 ## Quick start
@@ -31,7 +32,7 @@ Create `backend/.env` if needed (see [Environment](#environment) below).
 | `--init-db` | Creates SQLite tables in `jobportal.db` (run once, or after a DB/schema change) |
 | `--sync --max-pages 2` | Fetches up to 2 **pages per source** into SQLite (see [Refreshing job data](#refreshing-job-data)) |
 
-**Job sources:** see [docs/adapters/](docs/adapters/) — MyCareersFuture and Jobicy need no API keys; Adzuna needs `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; LinkedIn needs a self-hosted scraper on `localhost:3000` (enabled by default). Quick links: [MCF](docs/adapters/mycareersfuture.md) · [Jobicy](docs/adapters/jobicy.md) · [Adzuna](docs/adapters/adzuna.md) · [LinkedIn](docs/adapters/linkedin.md).
+**Job sources:** see [docs/adapters/](docs/adapters/) — MyCareersFuture and Jobicy need no API keys; Adzuna needs `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; LinkedIn needs a self-hosted scraper on `localhost:3000`; JobSpy needs a self-hosted sidecar on `localhost:8001` (both enabled by default). Quick links: [MCF](docs/adapters/mycareersfuture.md) · [Jobicy](docs/adapters/jobicy.md) · [Adzuna](docs/adapters/adzuna.md) · [LinkedIn](docs/adapters/linkedin.md).
 
 **2. Frontend**
 
@@ -93,11 +94,49 @@ uv run python -m app.worker --sync
 
 Use `--max-pages 2` for fast local testing; use full `--sync` when you want a complete dataset. Per-source page sizes and expiry behaviour are documented in [job ingestion architecture](docs/architecture/job-ingestion.md).
 
+**JobSpy:** start the sidecar on port 8001 before syncing — see [JobSpy (optional)](#jobspy-optional).
+
 **Jobicy:** optional filters in `backend/.env`: `JOBICY_GEO`, `JOBICY_INDUSTRY`, `JOBICY_TAG` — see [Jobicy API docs](https://jobicy.com/jobs-rss-feed).
 
 ### LinkedIn (optional)
 
 LinkedIn requires a separate scraper service before sync. See [LinkedIn scraper setup](docs/development/linkedin-scraper.md).
+
+### JobSpy (optional)
+
+JobSpy aggregates listings from Indeed, Glassdoor, Google, and Bayt (LinkedIn excluded to avoid overlap with the LinkedIn adapter). It runs as a **separate FastAPI sidecar** in your local JobSpy clone — the portal worker calls it over HTTP during sync only.
+
+**One-time sidecar setup** (in your JobSpy repo, e.g. `D:\Projects\JobSpy`):
+
+```bash
+cd D:\Projects\JobSpy
+uv pip install -e .
+```
+
+**Sync with JobSpy** — run the sidecar first, then sync in a second terminal:
+
+```bash
+# Terminal 1 — JobSpy sidecar
+cd D:\Projects\JobSpy
+uv run uvicorn jobspy_api.main:app --port 8001
+
+# Terminal 2 — sync (POC: 2 search terms)
+cd backend
+uv run python -m app.worker --sync --max-pages 2
+
+# Full refresh (all 36 search terms — can take 1–2+ hours)
+uv run python -m app.worker --sync
+```
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `JOBSPY_ENABLED` | `true` | Set `false` to skip JobSpy during sync |
+| `JOBSPY_API_URL` | `http://localhost:8001/v1` | Sidecar base URL |
+| `JOBSPY_PAGE_SIZE` | `1` | Term-based pagination (one worker page = one search term) |
+
+For JobSpy, `--max-pages N` means **N search terms** (not N API pages like other sources). Sidecar health check: `http://localhost:8001/health`.
+
+Configure scrape behaviour in the JobSpy repo — copy `D:\Projects\JobSpy\.env.example` to `.env` and edit `JOBSPY_SITE_NAMES`, `JOBSPY_SEARCH_TERMS`, `JOBSPY_RESULTS_WANTED`, `JOBSPY_HOURS_OLD`, etc. (loaded by `jobspy_api/config.py` and `scrape_sg.py`). When using both JobSpy and the LinkedIn adapter, set `JOBSPY_SITE_NAMES=indeed,glassdoor,google,bayt` to avoid duplicate LinkedIn listings.
 
 ### Database
 
@@ -118,7 +157,7 @@ LinkedIn requires a separate scraper service before sync. See [LinkedIn scraper 
 
 ## Environment
 
-- **Backend:** create `backend/.env` from [`backend/.env.example`](backend/.env.example). Toggle sources with `MCF_ENABLED`, `JOBICY_ENABLED`, `ADZUNA_ENABLED`, `LINKEDIN_ENABLED`; tune fetch size with `*_PAGE_SIZE`.
+- **Backend:** create `backend/.env` from [`backend/.env.example`](backend/.env.example). Toggle sources with `MCF_ENABLED`, `JOBICY_ENABLED`, `ADZUNA_ENABLED`, `LINKEDIN_ENABLED`, `JOBSPY_ENABLED`; tune fetch size with `*_PAGE_SIZE`.
 - **Jobicy (optional):** no API key. Uncomment filters in `backend/.env.example` to narrow remote listings, e.g. `JOBICY_GEO=singapore`, `JOBICY_INDUSTRY=engineering`, `JOBICY_TAG=python`.
 - **Job sources:** [docs/adapters/](docs/adapters/) — setup and API reference per adapter.
 - **Frontend:** optional `frontend/.env` — leave `VITE_API_BASE_URL` empty so requests use the Vite `/api` proxy in dev.
