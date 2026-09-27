@@ -176,6 +176,8 @@ uv run python -m app.worker --init-db    # create tables (first time)
 uv run python -m app.worker --sync
 ```
 
+**Step-by-step trace (Steps 0–13) and configuration flow:** [worker-sync-and-config.md](worker-sync-and-config.md)
+
 ### `*_MAX_PAGES` (`.env`)
 
 Each source has an optional cap in `backend/.env` (`backend/app/config.py`). When unset, sync fetches **all pages** until the source is exhausted.

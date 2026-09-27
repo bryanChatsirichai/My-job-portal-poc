@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from dotenv import dotenv_values
-
 from app.adapters.adzuna.adapter import AdzunaAdapter
-from app.adapters.jobspy.sites import parse_site_names_csv, source_from_site_name
+from app.adapters.jobspy.sites import jobspy_board_source_ids
 from app.adapters.linkedin.adapter import LinkedInAdapter
 from app.config import settings
 
@@ -32,27 +28,6 @@ def label_for_source(source_id: str) -> str:
     return SOURCE_LABELS.get(source_id, source_id.replace("_", " ").title())
 
 
-def resolve_jobspy_site_names() -> list[str]:
-    """Site list from portal ``JOBSPY_SITE_NAMES`` or ``JOBSPY_ENV_FILE`` (JobSpy repo ``.env``)."""
-    if settings.jobspy_site_names.strip():
-        return parse_site_names_csv(settings.jobspy_site_names)
-
-    env_file = settings.jobspy_env_file.strip()
-    if env_file:
-        path = Path(env_file)
-        if path.is_file():
-            values = dotenv_values(path)
-            raw = values.get("JOBSPY_SITE_NAMES") or ""
-            if raw.strip():
-                return parse_site_names_csv(raw)
-
-    return parse_site_names_csv("indeed,linkedin")
-
-
-def allowed_jobspy_sources() -> set[str]:
-    return {source_from_site_name(site) for site in resolve_jobspy_site_names()}
-
-
 def list_job_source_options() -> list[dict[str, str]]:
     """Sources shown in portal job-source filters (enabled adapters + JobSpy boards)."""
     seen: set[str] = set()
@@ -73,8 +48,8 @@ def list_job_source_options() -> list[dict[str, str]]:
     if settings.linkedin_enabled and LinkedInAdapter.is_configured():
         add("linkedin")
     if settings.jobspy_enabled and settings.jobspy_api_url.strip():
-        for site in resolve_jobspy_site_names():
-            add(source_from_site_name(site))
+        for source_id in jobspy_board_source_ids():
+            add(source_id)
 
     options.sort(key=lambda item: item["label"].lower())
     return options

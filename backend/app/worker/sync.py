@@ -4,9 +4,15 @@ Pulls listings from enabled ``JobSourceAdapter`` instances, normalizes each
 record into ``CanonicalJobInput``, and upserts into the database. After a
 full source sync, jobs that were not seen during the run are marked expired.
 
-Entry points:
-  - ``sync_all`` — run every registered adapter (scheduler / CLI).
-  - ``sync_source`` — sync a single adapter (testing or targeted runs).
+CLI trace (continues from ``app.worker.__main__``):
+
+  Step 6  — ``sync_all()`` (entry from ``run_sync``).
+  Step 7  — ``get_adapters()`` — which sources run (``*_ENABLED`` + credentials).
+  Step 8  — ``sync_source(adapter)`` — once per adapter in the list.
+  Step 9  — inside ``sync_source``: ``fetch_jobs`` loop (see ``app.adapters.*``).
+  Step 10 — ``_upsert_batch`` → ``app.db.upsert.upsert_job``.
+  Step 11 — ``expire_stale_jobs`` after all pages for that adapter.
+  Step 12 — ``sync_all`` merges stats and returns to ``run_sync``.
 """
 
 import logging
@@ -59,6 +65,7 @@ def get_adapters() -> list[JobSourceAdapter]:
     Toggle-only sources (MCF, Jobicy) register when ``*_ENABLED`` is true.
     Credential-gated sources (Adzuna, LinkedIn) also require API settings.
     """
+    # Step 7 — register adapters in fixed order (MCF → Jobicy → Adzuna → LinkedIn → JobSpy)
     adapters: list[JobSourceAdapter] = []
 
     _register_toggle(
@@ -149,11 +156,13 @@ def _upsert_batch(
     seen_by_source: dict[str, set[str]],
 ) -> int:
     """Normalize and persist one page of raw jobs; track IDs seen this run per source."""
+    # Step 10 — one DB session per API page batch
     db = SessionLocal()
     upserted = 0
     try:
         for raw in raw_jobs:
             normalized = adapter.normalize(raw)
+            # Step 10 (continued) — insert or update ``jobs`` row; see app.db.upsert
             upsert_job(db, normalized)
             seen_by_source.setdefault(normalized.source, set()).add(normalized.source_job_id)
             upserted += 1
@@ -174,6 +183,8 @@ def _page_limit_reached(adapter: JobSourceAdapter, page: int, max_pages: int | N
 
 async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
     """Fetch, normalize, and upsert all pages for one job source.
+
+    Step 8 — one adapter per call from ``sync_all``.
 
     Paginates until the adapter returns an empty page, a short page (fewer
     results than ``limit``), or the source ``*_MAX_PAGES`` env cap is reached.
@@ -207,6 +218,7 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
             if _page_limit_reached(adapter, page, max_pages):
                 break
 
+            # Step 9 — adapter calls upstream API (implementation in app.adapters.<source>)
             raw_jobs = await adapter.fetch_jobs(
                 FetchParams(
                     page=page,
@@ -231,6 +243,7 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
                 break
             page += 1
 
+    # Step 11 — mark active jobs missing from this run as expired (per canonical source)
     db = SessionLocal()
     expired = 0
     try:
@@ -250,10 +263,12 @@ async def sync_all() -> list[SyncResult]:
     Failures are isolated per source — one adapter error does not block the
     rest. Each result includes ``source`` plus stats or an ``error`` key.
     """
+    # Step 6 — top-level ingestion entry (CLI and scheduler both call this)
     results: list[SyncResult] = []
     for adapter in get_adapters():
         try:
             stats = await sync_source(adapter)
+            # Step 12 — per-source outcome (stats or skipped keys inside stats)
             results.append({"source": adapter.source_name, **stats})
         except Exception:
             logger.exception("sync failed for source %s", adapter.source_name)

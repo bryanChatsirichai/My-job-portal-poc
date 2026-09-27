@@ -7,6 +7,7 @@ Reference documentation for how the Smart Job Portal POC works today.
 | Document | Description |
 |----------|-------------|
 | [Job ingestion](architecture/job-ingestion.md) | How jobs are gathered from external APIs, normalized, stored in SQLite, and served to the frontend |
+| [Worker sync trace & config](architecture/worker-sync-and-config.md) | Step-by-step `python -m app.worker --sync` trace and how `backend/.env` flows through worker vs API |
 
 ## Development guides
 

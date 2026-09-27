@@ -29,10 +29,6 @@ def source_from_site(site: object) -> str:
     return SITE_TO_SOURCE.get(key, key)
 
 
-def source_from_site_name(site_name: str) -> str:
-    """Map a ``JOBSPY_SITE_NAMES`` entry to portal source."""
-    return source_from_site(site_name)
-
-
-def parse_site_names_csv(raw: str) -> list[str]:
-    return [site.strip() for site in raw.split(",") if site.strip()]
+def jobspy_board_source_ids() -> list[str]:
+    """Portal source ids for JobSpy boards (scrape boards configured in JobSpy repo only)."""
+    return sorted(set(SITE_TO_SOURCE.values()), key=str.lower)

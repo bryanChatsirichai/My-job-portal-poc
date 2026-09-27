@@ -2,7 +2,7 @@
 
 Job listings from a **self-hosted** [JobSpy](https://github.com/speedyapply/JobSpy) FastAPI sidecar (`jobspy_api` on the `custom-api-upgrade` branch). Optional — the portal calls the sidecar during sync only, never at browse time.
 
-Each scraped row is stored under the **board** name (`indeed`, `linkedin`, …), not a single `jobspy` source id. The portal **Source** filter lists those boards based on `JOBSPY_SITE_NAMES` / `JOBSPY_ENV_FILE`.
+Each scraped row is stored under the **board** name (`indeed`, `linkedin`, …), not a single `jobspy` source id. The portal **Source** filter lists JobSpy board ids from `SITE_TO_SOURCE` in `sites.py` (not from portal env).
 
 | Item | Value |
 |------|--------|
@@ -37,8 +37,6 @@ JOBSPY_ENABLED=true
 JOBSPY_API_URL=http://localhost:8001/v1
 JOBSPY_PAGE_SIZE=1
 # JOBSPY_MAX_PAGES=2
-# JOBSPY_ENV_FILE=D:\Projects\JobSpy\.env
-# JOBSPY_SITE_NAMES=indeed,linkedin
 ```
 
 | Variable | Required | Default | Description |
@@ -47,10 +45,8 @@ JOBSPY_PAGE_SIZE=1
 | `JOBSPY_API_URL` | No | `http://localhost:8001/v1` | Sidecar base URL including `/v1`. Empty = adapter not registered |
 | `JOBSPY_PAGE_SIZE` | No | `1` | Worker batch size; keep `1` — one worker page = one search term |
 | `JOBSPY_MAX_PAGES` | No | unset | **Last 0-based search-term index (inclusive)**. `2` → pages `0`, `1`, `2`. Unset = all terms (can take 1–2+ hours) |
-| `JOBSPY_ENV_FILE` | No | `""` | Path to JobSpy repo `.env`; used to read `JOBSPY_SITE_NAMES` for **UI source filters** when `JOBSPY_SITE_NAMES` is unset |
-| `JOBSPY_SITE_NAMES` | No | `""` | Comma-separated boards for **UI source filters**; overrides `JOBSPY_ENV_FILE`. When both unset, filters default to `indeed,linkedin` |
 
-**Boards actually scraped** come from the JobSpy repo `.env` (`JOBSPY_SITE_NAMES` on the sidecar). Portal `JOBSPY_SITE_NAMES` does not filter ingest (it only drives `GET /api/v1/job-sources` and which filter chips appear).
+**Boards scraped** come only from the JobSpy repo `.env` (`JOBSPY_SITE_NAMES` on the sidecar).
 
 When using **both** JobSpy and the [LinkedIn adapter](./linkedin.md), omit `linkedin` from the JobSpy repo `JOBSPY_SITE_NAMES` (e.g. `indeed,glassdoor,google,bayt`) to avoid duplicate LinkedIn rows.
 
@@ -135,7 +131,7 @@ Glassdoor, Google, and Bayt mappings exist in code but are commented out until e
 
 1. `uv run uvicorn app.main:app --reload --port 8000` (from `backend/`)
 2. `npm run dev` (from `frontend/`)
-3. Open http://localhost:5173 → **Source** filter → boards from your `JOBSPY_SITE_NAMES` (e.g. **Indeed**, **LinkedIn**)
+3. Open http://localhost:5173 → **Source** filter → JobSpy boards (e.g. **Indeed**, **LinkedIn**) when the sidecar is enabled
 
 `GET /api/v1/job-sources` returns enabled adapters plus JobSpy board ids.
 

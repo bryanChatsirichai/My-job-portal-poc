@@ -5,8 +5,7 @@ Requires ``JOBSPY_API_URL`` pointing at a running ``jobspy_api`` instance
 
 Each sync page is one 0-based search-term index: ``GET /v1/jobs/search?page=N``.
 Configure terms and boards in the JobSpy repo ``.env`` (``JOBSPY_SEARCH_TERMS``,
-``JOBSPY_SITE_NAMES``). Portal reads the same board list via ``JOBSPY_ENV_FILE`` or
-``JOBSPY_SITE_NAMES`` for ingest filtering and UI source filters.
+``JOBSPY_SITE_NAMES``, etc.).
 
 Each job's ``site`` field (indeed, glassdoor, …) is mapped to canonical ``source``
 for filtering and badges in the portal UI.
@@ -68,10 +67,6 @@ class JobSpyAdapter(JobSourceAdapter):
             return []
 
         jobs = data.get("jobs") or []
-        # Portal site filter disabled — boards are controlled by JobSpy ``JOBSPY_SITE_NAMES`` only.
-        # allowed = allowed_jobspy_sources()
-        # if allowed:
-        #     jobs = [job for job in jobs if source_from_site(job.get("site")) in allowed]
 
         logger.info(
             "JobSpy API page %s (%s) returned %s jobs has_more=%s",

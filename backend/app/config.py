@@ -99,14 +99,6 @@ class Settings(BaseSettings):
         default="http://localhost:8001/v1",
         description="Env JOBSPY_API_URL. Empty = JobSpy adapter skipped.",
     )
-    jobspy_env_file: str = Field(  # JOBSPY_ENV_FILE
-        default="",
-        description="Path to JobSpy repo .env (reads JOBSPY_SITE_NAMES for filters and ingest).",
-    )
-    jobspy_site_names: str = Field(  # JOBSPY_SITE_NAMES
-        default="",
-        description="Comma-separated boards; overrides JOBSPY_ENV_FILE when set.",
-    )
 
     @property
     def database_backend(self) -> str:
@@ -117,4 +109,5 @@ class Settings(BaseSettings):
         return "other"
 
 
+# Step 0 (import) — settings resolved once per process on first ``from app.config import settings``
 settings = Settings()
