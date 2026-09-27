@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 
 import { fetchJobs } from '../api/jobs';
 import { FilterPanel } from '../components/FilterPanel/FilterPanel';
+import { useJobSources } from '../hooks/useJobSources';
+import { getSourceDisplayName } from '../utils/format';
 import { JobCard } from '../components/JobCard/JobCard';
 import { SearchBar } from '../components/SearchBar/SearchBar';
 import { Button } from '../components/ui/Button/Button';
@@ -15,6 +17,7 @@ type FilterKey = 'q' | 'salary_min' | 'salary_max' | 'location' | 'source';
 const PAGE_SIZE = 20;
 
 export function HomePage() {
+  const jobSources = useJobSources();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
@@ -104,7 +107,8 @@ export function HomePage() {
       chips.push({ key: 'location', label: searchParams.get('location')! });
     }
     if (searchParams.get('source')) {
-      chips.push({ key: 'source', label: searchParams.get('source')! });
+      const sourceId = searchParams.get('source')!;
+      chips.push({ key: 'source', label: getSourceDisplayName(sourceId) });
     }
     return chips;
   }, [searchParams]);
@@ -158,6 +162,7 @@ export function HomePage() {
           salaryMax={salaryMax}
           location={location}
           source={source}
+          sourceOptions={jobSources}
           onSalaryMinChange={setSalaryMin}
           onSalaryMaxChange={setSalaryMax}
           onLocationChange={setLocation}

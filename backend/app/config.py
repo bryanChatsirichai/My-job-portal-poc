@@ -48,14 +48,17 @@ class Settings(BaseSettings):
     adzuna_page_size: int = 50  # ADZUNA_PAGE_SIZE
     jobicy_page_size: int = 200  # JOBICY_PAGE_SIZE
     linkedin_page_size: int = 70  # LINKEDIN_PAGE_SIZE
-    jobspy_page_size: int = 1  # JOBSPY_PAGE_SIZE — term pagination; only empty pages stop sync
+    jobspy_page_size: int = 1  # JOBSPY_PAGE_SIZE — one search term per sync page
 
     # --- Sync page limits (unset = unlimited; fetch until source exhausted) ---
     mcf_max_pages: int | None = Field(default=None, description="Env MCF_MAX_PAGES")  # MCF_MAX_PAGES
     adzuna_max_pages: int | None = Field(default=None, description="Env ADZUNA_MAX_PAGES")
     jobicy_max_pages: int | None = Field(default=None, description="Env JOBICY_MAX_PAGES")
     linkedin_max_pages: int | None = Field(default=None, description="Env LINKEDIN_MAX_PAGES")
-    jobspy_max_pages: int | None = Field(default=None, description="Env JOBSPY_MAX_PAGES")
+    jobspy_max_pages: int | None = Field(
+        default=None,
+        description="Env JOBSPY_MAX_PAGES — last 0-based search-term index (inclusive)",
+    )
 
     # --- Adzuna (optional) ---
     # Default "" disables Adzuna; set ADZUNA_APP_ID and ADZUNA_APP_KEY in backend/.env to enable sync.
@@ -95,6 +98,14 @@ class Settings(BaseSettings):
     jobspy_api_url: str = Field(  # JOBSPY_API_URL
         default="http://localhost:8001/v1",
         description="Env JOBSPY_API_URL. Empty = JobSpy adapter skipped.",
+    )
+    jobspy_env_file: str = Field(  # JOBSPY_ENV_FILE
+        default="",
+        description="Path to JobSpy repo .env (reads JOBSPY_SITE_NAMES for filters and ingest).",
+    )
+    jobspy_site_names: str = Field(  # JOBSPY_SITE_NAMES
+        default="",
+        description="Comma-separated boards; overrides JOBSPY_ENV_FILE when set.",
     )
 
     @property

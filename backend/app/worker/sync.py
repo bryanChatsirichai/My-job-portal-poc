@@ -143,19 +143,33 @@ def _max_pages(adapter: JobSourceAdapter) -> int | None:
     return _MAX_PAGES_BY_SOURCE.get(adapter.source_name)
 
 
-def _upsert_batch(adapter: JobSourceAdapter, raw_jobs: list[dict], seen_ids: set[str]) -> int:
-    """Normalize and persist one page of raw jobs; track IDs seen this run."""
+def _upsert_batch(
+    adapter: JobSourceAdapter,
+    raw_jobs: list[dict],
+    seen_by_source: dict[str, set[str]],
+) -> int:
+    """Normalize and persist one page of raw jobs; track IDs seen this run per source."""
     db = SessionLocal()
     upserted = 0
     try:
         for raw in raw_jobs:
             normalized = adapter.normalize(raw)
             upsert_job(db, normalized)
-            seen_ids.add(normalized.source_job_id)
+            seen_by_source.setdefault(normalized.source, set()).add(normalized.source_job_id)
             upserted += 1
     finally:
         db.close()
     return upserted
+
+
+def _page_limit_reached(adapter: JobSourceAdapter, page: int, max_pages: int | None) -> bool:
+    """Return True when pagination should stop before fetching ``page``."""
+    if max_pages is None:
+        return False
+    # JobSpy: max_pages is the last 0-based search-term index (inclusive).
+    if adapter.source_name == "jobspy":
+        return page > max_pages
+    return page >= max_pages
 
 
 async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
@@ -178,7 +192,7 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
 
     page_size = _page_size(adapter)
     max_pages = _max_pages(adapter)
-    seen_ids: set[str] = set()
+    seen_by_source: dict[str, set[str]] = {}
     fetched = 0
     upserted = 0
 
@@ -190,7 +204,7 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
     for keywords in contexts:
         page = 0
         while True:
-            if max_pages is not None and page >= max_pages:
+            if _page_limit_reached(adapter, page, max_pages):
                 break
 
             raw_jobs = await adapter.fetch_jobs(
@@ -205,7 +219,12 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
                 break
 
             fetched += len(raw_jobs)
-            upserted += _upsert_batch(adapter, raw_jobs, seen_ids)
+            upserted += _upsert_batch(adapter, raw_jobs, seen_by_source)
+
+            # JobSpy: one API page = one search term (any job count); stop on empty only.
+            if adapter.source_name == "jobspy":
+                page += 1
+                continue
 
             # A partial page means the upstream API has no more results.
             if len(raw_jobs) < page_size:
@@ -213,8 +232,10 @@ async def sync_source(adapter: JobSourceAdapter) -> SyncResult:
             page += 1
 
     db = SessionLocal()
+    expired = 0
     try:
-        expired = expire_stale_jobs(db, adapter.source_name, seen_ids)
+        for source, seen_ids in seen_by_source.items():
+            expired += expire_stale_jobs(db, source, seen_ids)
     finally:
         db.close()
 

@@ -6,6 +6,15 @@ export interface Location {
   lng?: number | null;
 }
 
+export interface JobSourceOption {
+  id: string;
+  label: string;
+}
+
+export interface JobSourcesResponse {
+  sources: JobSourceOption[];
+}
+
 export interface JobListItem {
   id: string;
   source: string;

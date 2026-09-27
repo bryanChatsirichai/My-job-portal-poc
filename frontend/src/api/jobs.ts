@@ -1,4 +1,4 @@
-import type { JobDetail, JobSearchParams, JobSearchResponse } from '../types/job';
+import type { JobDetail, JobSearchParams, JobSearchResponse, JobSourcesResponse } from '../types/job';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -19,6 +19,10 @@ async function request<T>(path: string): Promise<T> {
     throw new Error(`API request failed: ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+export async function fetchJobSources(): Promise<JobSourcesResponse> {
+  return request<JobSourcesResponse>('/api/v1/job-sources');
 }
 
 export async function fetchJobs(params: JobSearchParams = {}): Promise<JobSearchResponse> {

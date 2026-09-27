@@ -1,7 +1,15 @@
 """JobSpy adapter via self-hosted JobSpy FastAPI sidecar.
 
-Requires ``JOBSPY_API_URL`` pointing at a running ``jobspy_api`` instance.
-Each worker page maps to one search-term sweep across configured job boards.
+Requires ``JOBSPY_API_URL`` pointing at a running ``jobspy_api`` instance
+(see https://github.com/bryanChatsirichai/JobSpy/tree/feature/custom-api-upgrade/jobspy_api).
+
+Each sync page is one 0-based search-term index: ``GET /v1/jobs/search?page=N``.
+Configure terms and boards in the JobSpy repo ``.env`` (``JOBSPY_SEARCH_TERMS``,
+``JOBSPY_SITE_NAMES``). Portal reads the same board list via ``JOBSPY_ENV_FILE`` or
+``JOBSPY_SITE_NAMES`` for ingest filtering and UI source filters.
+
+Each job's ``site`` field (indeed, glassdoor, …) is mapped to canonical ``source``
+for filtering and badges in the portal UI.
 """
 
 from __future__ import annotations
@@ -12,6 +20,8 @@ import logging
 import httpx
 
 from app.adapters.base import FetchParams, JobSourceAdapter
+from app.adapters.jobspy.client import fetch_search_page
+from app.adapters.jobspy.sites import source_from_site
 from app.adapters.utils import (
     normalize_salary_period,
     parse_datetime,
@@ -40,34 +50,41 @@ class JobSpyAdapter(JobSourceAdapter):
             logger.warning("JobSpy API URL not set; skip sync for source=jobspy")
             return []
 
-        query: dict[str, int] = {"page": params.page}
-        base_url = settings.jobspy_api_url.rstrip("/")
-        url = f"{base_url}/jobs/search"
-        logger.info("JobSpy API request: %s params=%s", url, query)
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.get(url, params=query)
-                response.raise_for_status()
-                data = response.json()
+            data = await fetch_search_page(
+                base_url=settings.jobspy_api_url,
+                page=params.page,
+            )
         except httpx.HTTPError as exc:
             logger.warning("JobSpy API request failed (page=%s): %s", params.page, exc)
             return []
 
         if not data.get("success", True):
-            logger.warning("JobSpy API returned success=false (page=%s)", params.page)
+            logger.warning(
+                "JobSpy API returned success=false (page=%s term=%s)",
+                params.page,
+                data.get("search_term"),
+            )
             return []
 
-        jobs = data.get("jobs", [])
+        jobs = data.get("jobs") or []
+        # Portal site filter disabled — boards are controlled by JobSpy ``JOBSPY_SITE_NAMES`` only.
+        # allowed = allowed_jobspy_sources()
+        # if allowed:
+        #     jobs = [job for job in jobs if source_from_site(job.get("site")) in allowed]
+
         logger.info(
-            "JobSpy API page %s (%s) returned %s jobs",
-            params.page,
+            "JobSpy API page %s (%s) returned %s jobs has_more=%s",
+            data.get("page", params.page),
             data.get("search_term"),
             len(jobs),
+            data.get("has_more"),
         )
         return jobs
 
     def normalize(self, raw: dict) -> CanonicalJobInput:
         """Map a JobSpy record to ``CanonicalJobInput``."""
+        source = source_from_site(raw.get("site"))
         job_url = raw.get("job_url") or raw.get("job_url_direct") or ""
         source_job_id = raw.get("id") or _fallback_job_id(job_url)
 
@@ -78,7 +95,7 @@ class JobSpyAdapter(JobSourceAdapter):
         posted_str = str(posted) if posted is not None else None
 
         return CanonicalJobInput(
-            source=self.source_name,
+            source=source,
             source_job_id=str(source_job_id),
             title=raw.get("title", "Untitled role"),
             company_name=raw.get("company") or "Unknown company",
@@ -98,7 +115,7 @@ class JobSpyAdapter(JobSourceAdapter):
             description=raw.get("description"),
             posted_date=parse_datetime(posted_str),
             expiry_date=None,
-            apply_url=apply_url or f"jobspy:{source_job_id}",
+            apply_url=apply_url or f"{source}:{source_job_id}",
             raw_payload=raw,
         )
 
