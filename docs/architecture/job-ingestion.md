@@ -2,9 +2,12 @@
 
 This document describes how the Smart Job Portal POC gathers job listings from external job-board APIs, normalizes them into a single schema, stores them locally, and serves them to the React frontend.
 
-**Current state (POC):** Two job sources:
+**Current state (POC):** Six job sources:
 - **MyCareersFuture** — public API, no key required
+- **Jobicy** — public API, no key required ([Jobicy API](https://jobicy.com/jobs-rss-feed))
 - **Adzuna** — official API (Singapore), requires free API key from [developer.adzuna.com](https://developer.adzuna.com)
+- **LinkedIn** — self-hosted [LinkedIn Jobs API](https://github.com/bryanChatsirichai/Linkedin-Jobs-Api) scraper (sync only)
+- **JobSpy** — self-hosted JobSpy `jobspy_api` sidecar (sync only; rows stored per board, e.g. `indeed`, `linkedin`)
 
 ---
 
@@ -94,7 +97,7 @@ class JobSourceAdapter(ABC):
 | Source ID | `raw["uuid"]` → `source_job_id` |
 | Apply URL | `metadata.jobDetailsUrl` |
 
-Full reference: [adapters/mycareersfuture.md](./adapters/mycareersfuture.md)
+Full reference: [mycareersfuture.md](../adapters/mycareersfuture.md)
 
 ### Adzuna (second source)
 
@@ -109,7 +112,21 @@ Full reference: [adapters/mycareersfuture.md](./adapters/mycareersfuture.md)
 
 The adapter is **only registered** when both env vars are set. Without keys, sync continues with MyCareersFuture only (no accidental expiry of Adzuna rows).
 
-Full reference: [adapters/adzuna.md](./adapters/adzuna.md)
+Full reference: [adzuna.md](../adapters/adzuna.md)
+
+### JobSpy (sidecar)
+
+| Item | Value |
+|------|--------|
+| File | `backend/app/adapters/jobspy/adapter.py` |
+| API | `GET {JOBSPY_API_URL}/jobs/search?page=N` (0-based search-term index) |
+| Auth | None — requires self-hosted sidecar (`JOBSPY_API_URL`, default `http://localhost:8001/v1`) |
+| Pagination | One worker page = one search term; `JOBSPY_MAX_PAGES` caps the last term index (inclusive) |
+| Source ID | Per-board `site` field → `source` (`indeed`, `linkedin`, …) |
+
+The adapter is **only registered** when `JOBSPY_ENABLED` is true and `JOBSPY_API_URL` is non-empty.
+
+Full reference: [jobspy.md](../adapters/jobspy.md)
 
 ### Adding more sources
 
@@ -156,23 +173,39 @@ Raw API responses differ per source. Adapters map them to `CanonicalJobInput`:
 ```bash
 cd backend
 uv run python -m app.worker --init-db    # create tables (first time)
-uv run python -m app.worker --sync       # full sync (all pages per source)
-uv run python -m app.worker --sync --max-pages 2   # POC: limit pages per source
+uv run python -m app.worker --sync
 ```
 
-### `--max-pages` flag
+**Step-by-step trace (Steps 0–13) and configuration flow:** [worker-sync-and-config.md](worker-sync-and-config.md)
 
-`--max-pages N` caps how many **API pages** the worker fetches **per source** (MyCareersFuture, Adzuna, etc.) — not per job and not across all sources combined.
+### `*_MAX_PAGES` (`.env`)
 
-The worker loops `page = 0, 1, …` until `page >= max_pages` or the source returns no more results (`backend/app/worker/sync.py`).
+Each source has an optional cap in `backend/.env` (`backend/app/config.py`). When unset, sync fetches **all pages** until the source is exhausted.
 
-| Source | Default page size (`config.py`) | `--max-pages 2` ≈ max jobs |
-|--------|----------------------------------|----------------------------|
-| MyCareersFuture | 100 (`mcf_page_size`) | ~200 |
-| Adzuna | 50 (`adzuna_page_size`) | ~100 |
+| Env var | Source |
+|---------|--------|
+| `MCF_MAX_PAGES` | MyCareersFuture |
+| `ADZUNA_MAX_PAGES` | Adzuna |
+| `JOBICY_MAX_PAGES` | Jobicy |
+| `LINKEDIN_MAX_PAGES` | LinkedIn |
+| `JOBSPY_MAX_PAGES` | JobSpy (search terms, not API pages) |
 
-- **With `--max-pages 2`:** fast POC runs, fewer external API calls.
-- **Without `--max-pages`:** full sync — keeps paging until each source is exhausted (can be tens of thousands of listings for MyCareersFuture).
+The worker loops `page = 0, 1, …` until the cap is reached or the source returns no more results (`backend/app/worker/sync.py`). **JobSpy** uses `page > JOBSPY_MAX_PAGES` (last 0-based search-term index, inclusive).
+
+| Source | Default page size | `*_MAX_PAGES=2` ≈ max jobs |
+|--------|-------------------|----------------------------|
+| MyCareersFuture | 100 (`MCF_PAGE_SIZE`) | ~200 |
+| Jobicy | 200 (`JOBICY_PAGE_SIZE`) | `1` → 100 jobs; `2` → 200 (API max) |
+| Adzuna | 50 (`ADZUNA_PAGE_SIZE`) | ~100 |
+| LinkedIn | 70 (`LINKEDIN_PAGE_SIZE`) | ~140 (requires self-hosted scraper on `localhost:3000`) |
+| JobSpy | 1 (`JOBSPY_PAGE_SIZE`) | **N search terms**, not job count (`JOBSPY_MAX_PAGES=2` → 3 terms: pages 0–2). Requires sidecar on `localhost:8001` |
+
+**JobSpy:** one sidecar request per search term; see [jobspy.md](../adapters/jobspy.md).
+
+**Jobicy:** one API call per sync; `count` is `100 × JOBICY_MAX_PAGES` (1→100, 2→200), or **200** when `JOBICY_MAX_PAGES` is unset. Optional filters: `JOBICY_GEO`, `JOBICY_INDUSTRY`, `JOBICY_TAG`.
+
+- **With `*_MAX_PAGES=2`:** fast POC runs, fewer external API calls.
+- **With `*_MAX_PAGES` unset:** full sync — keeps paging until each source is exhausted (can be tens of thousands of listings for MyCareersFuture).
 
 After sync, reload the frontend; no API server restart is required.
 
@@ -217,7 +250,7 @@ Search only returns `status = active` jobs (`backend/app/db/search.py`). Expired
 
 **The DB is never cleared on sync** — same jobs are updated in place, new jobs are added, and missing jobs are expired.
 
-#### Example: full sync (`--sync` with no page limit)
+#### Example: full sync (no `*_MAX_PAGES` in `.env`)
 
 Suppose your DB already has 3 active MyCareersFuture jobs:
 
@@ -245,12 +278,12 @@ You run a **full sync**. MyCareersFuture returns:
 
 The UI search shows 3 jobs (`job-A`, `job-B`, `job-D`). `job-C` is still in SQLite but hidden.
 
-#### Example: limited sync (`--max-pages 2`)
+#### Example: limited sync (`MCF_MAX_PAGES=2`)
 
-Same starting DB (200+ active jobs from an earlier full sync). You run:
+Same starting DB (200+ active jobs from an earlier full sync). You set `MCF_MAX_PAGES=2` in `.env` and run:
 
 ```bash
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
 MyCareersFuture returns **only the first 2 pages** (~200 jobs). Those IDs go into `seen_ids`.
@@ -262,22 +295,22 @@ MyCareersFuture returns **only the first 2 pages** (~200 jobs). Those IDs go int
 
 So the UI might drop from 5,000 listings to ~200 — not because MCF removed them, but because the limited sync treated “not fetched” as “stale.”
 
-That is why `--max-pages 2` is for **quick testing**, not for keeping a large accurate catalog.
+That is why `*_MAX_PAGES=2` is for **quick testing**, not for keeping a large accurate catalog.
 
-### `--max-pages` and expiry (important)
+### `*_MAX_PAGES` and expiry (important)
 
 `expire_stale_jobs` runs **after every sync** and marks any **active** job from that source that was **not** in the current run’s `seen_ids` as `expired`.
 
-With a **full sync** (no `--max-pages`), `seen_ids` contains every job the source returned across all pages — expiry correctly reflects jobs that are gone from the source.
+With a **full sync** (`*_MAX_PAGES` unset), `seen_ids` contains every job the source returned across all pages — expiry correctly reflects jobs that are gone from the source.
 
-With **`--max-pages 2`**, only the first 2 pages per source are fetched, so `seen_ids` is a **subset**. All other previously active jobs from that source can be marked `expired` even though they still exist on MyCareersFuture — they simply were not in those 2 pages.
+With **`MCF_MAX_PAGES=2`** (etc.), only the first 2 pages for that source are fetched, so `seen_ids` is a **subset**. All other previously active jobs from that source can be marked `expired` even though they still exist on MyCareersFuture — they simply were not in those 2 pages.
 
 | Sync mode | Expiry behavior |
 |-----------|-----------------|
-| Full `--sync` | Expire only jobs the source no longer returns |
-| `--max-pages 2` | Fast for testing, but can **hide** older listings that weren’t in the limited fetch |
+| Full sync (`*_MAX_PAGES` unset) | Expire only jobs the source no longer returns |
+| Limited (`*_MAX_PAGES=2`) | Fast for testing, but can **hide** older listings that weren’t in the limited fetch |
 
-Use `--max-pages 2` for quick local runs; use full `--sync` when you want accurate expiry and a complete dataset.
+Use `*_MAX_PAGES=2` for quick local runs; leave caps unset when you want accurate expiry and a complete dataset.
 
 ### Staleness
 
@@ -301,7 +334,7 @@ Data is a **cache** refreshed on each sync run, not live on every user search.
 |------|--------|
 | Default URL | `sqlite:///./jobportal.db` (see `backend/.env`) |
 | Table | `jobs` |
-| Future option | Postgres via `docker-compose.yml` + `DATABASE_URL` |
+| Future option | Postgres via `backend/docker/postgres/docker-compose.yml` + `DATABASE_URL` |
 
 The frontend **never** reads SQLite directly. It only talks to FastAPI.
 
@@ -408,7 +441,7 @@ frontend/
 
 | Area | Direction |
 |------|-----------|
-| Database | Postgres via `docker-compose.yml` for production scale |
+| Database | Postgres via `backend/docker/postgres/docker-compose.yml` for production scale |
 | Sync schedule | APScheduler cron (`backend/app/worker/scheduler.py`) |
 | Freshness UI | Show "Last synced at …" on search page |
 | Hybrid refresh | Re-fetch single job from source on detail view |

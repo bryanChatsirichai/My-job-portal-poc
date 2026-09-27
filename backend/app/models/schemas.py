@@ -49,6 +49,16 @@ class JobSearchResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+    database: str
+
+
+class JobSourceOption(BaseModel):
+    id: str
+    label: str
+
+
+class JobSourcesResponse(BaseModel):
+    sources: list[JobSourceOption]
 
 
 class CanonicalJobInput(BaseModel):

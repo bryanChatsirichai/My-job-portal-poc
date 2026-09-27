@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import type { JobSourceOption } from '../../types/job';
+import { SourceFilterSelect } from '../SourceFilterSelect/SourceFilterSelect';
 import { Button } from '../ui/Button/Button';
 import { Input } from '../ui/Input/Input';
-import { Select } from '../ui/Select/Select';
 import styles from './FilterPanel.module.scss';
 
 const SALARY_FLOOR = 0;
@@ -15,6 +16,7 @@ interface FilterPanelProps {
   salaryMax: string;
   location: string;
   source: string;
+  sourceOptions: JobSourceOption[];
   onSalaryMinChange: (value: string) => void;
   onSalaryMaxChange: (value: string) => void;
   onLocationChange: (value: string) => void;
@@ -27,6 +29,7 @@ function FilterFields({
   salaryMax,
   location,
   source,
+  sourceOptions,
   onSalaryMinChange,
   onSalaryMaxChange,
   onLocationChange,
@@ -42,17 +45,12 @@ function FilterFields({
         <h3 className={styles.sectionTitle}>Source</h3>
         <label className={styles.field} htmlFor="filter-source">
           <span className={styles.fieldLabel}>Job source</span>
-          <Select
+          <SourceFilterSelect
             id="filter-source"
             value={source}
-            onChange={(event) => onSourceChange(event.target.value)}
-          >
-            <option value="">All sources</option>
-            <option value="mycareersfuture">MyCareersFuture</option>
-            <option value="adzuna">Adzuna</option>
-            <option value="jobicy">Jobicy</option>
-            <option value="linkedin">LinkedIn</option>
-          </Select>
+            sources={sourceOptions}
+            onChange={onSourceChange}
+          />
         </label>
       </section>
 

@@ -6,7 +6,7 @@
 **Finished:** 2026-09-11
 
 **Estimated effort:** 1–2 sessions  
-**Depends on:** [Step 0](./00-prep.md)  
+**Depends on:** [Step 0](./prep.md)  
 **Blocks:** Steps 2–6
 
 ## Tasks
@@ -15,7 +15,7 @@
 
 **File:** `frontend/src/styles/_variables.scss`
 
-- Replace teal-centric palette with Harbor Signal tokens (see [00-overview.md](./00-overview.md))
+- Replace teal-centric palette with Harbor Signal tokens (see [overview.md](./overview.md))
 - Add type scale variables (`$font-display`, `$font-ui`, sizes, line-heights)
 - Add elevation tokens (prefer border-based; minimal shadow)
 - Add motion tokens (`$duration-fast`, `$duration-normal`)

@@ -52,3 +52,12 @@ def title_case_snake(value: str | None) -> str | None:
     if not value:
         return None
     return value.replace("_", " ").title()
+
+
+def split_csv_field(value: str | list | None) -> list[str]:
+    """Split comma-separated scraper fields into a trimmed string list."""
+    if not value:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return [part.strip() for part in str(value).split(",") if part.strip()]

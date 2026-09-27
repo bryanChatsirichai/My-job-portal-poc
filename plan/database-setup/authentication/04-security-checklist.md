@@ -118,7 +118,7 @@ Cross-reference [jobdb/04-production-hardening.md](../jobdb/04-production-harden
 - [ ] CORS rejects requests from unknown origins
 - [ ] HTTPS works end-to-end
 - [ ] `/docs` inaccessible or auth-gated in production
-- [ ] Security items documented in `docs/deployment.md` or README
+- [ ] Security items documented in `docs/operations/deployment.md` or README
 
 ---
 

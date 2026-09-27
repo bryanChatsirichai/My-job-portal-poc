@@ -24,7 +24,7 @@ Key files:
 - `backend/app/config.py` — `database_url` default `sqlite:///./jobportal.db`
 - `backend/app/db/session.py` — SQLAlchemy engine + `SessionLocal`
 - `backend/app/db/search.py` — `USE_SQLITE` branch for JSON location filters
-- `docker-compose.yml` — Postgres 16 Alpine (optional, not required for POC today)
+- `backend/docker/postgres/docker-compose.yml` — Postgres 16 Alpine (optional, not required for POC today)
 
 ---
 
@@ -52,7 +52,7 @@ You do **not** need to containerize the FastAPI app or React frontend in Phase 1
 image: postgres:16-alpine
 ```
 
-Already in root `docker-compose.yml`. Reasons:
+Already in `backend/docker/postgres/docker-compose.yml`. Reasons:
 
 - `psycopg2-binary` already in `backend/pyproject.toml`
 - `search.py` already has Postgres-specific JSON path queries
@@ -121,7 +121,7 @@ Phase 2–3 add `users` and `applications` tables in the **same** database selec
 
 ### Phase 1 — jobdb
 
-- Harden `docker-compose.yml`
+- Harden `backend/docker/postgres/docker-compose.yml`
 - Set up Alembic migrations for `jobs` table
 - Verify worker + API on SQLite **and** Postgres
 - Document env profiles (`.env.sqlite` / `.env.postgres` templates)

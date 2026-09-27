@@ -22,7 +22,7 @@ Optional filters in `backend/.env` (see [`backend/.env.example`](../../backend/.
 
 ```bash
 cd backend
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
 ## API
@@ -33,7 +33,7 @@ GET https://jobicy.com/api/v2/remote-jobs?count={count}&geo={geo}&tag={tag}&indu
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `count` | No | Max jobs to return; adapter sets `100 × --max-pages` (1→100, 2→200), default **200** |
+| `count` | No | Max jobs to return; adapter sets `100 × JOBICY_MAX_PAGES` (1→100, 2→200), default **200** when unset |
 | `geo` | No | Location eligibility slug (from `JOBICY_GEO`) |
 | `tag` | No | Keyword search (from `JOBICY_TAG`) |
 | `industry` | No | Category slug (from `JOBICY_INDUSTRY`) |
@@ -51,15 +51,16 @@ None.
 | Setting | Location | Default |
 |---------|----------|---------|
 | Page size | `jobicy_page_size` / `JOBICY_PAGE_SIZE` | `200` |
+| Max pages | `JOBICY_MAX_PAGES` | unset = 200 jobs (API max) |
 | Geo filter | `jobicy_geo` / `JOBICY_GEO` | `""` |
 | Industry filter | `jobicy_industry` / `JOBICY_INDUSTRY` | `""` |
 | Tag filter | `jobicy_tag` / `JOBICY_TAG` | `""` |
 
 ## Pagination
 
-Single API request on page 0. The `count` parameter is driven by `--max-pages`:
+Single API request on page 0. The `count` parameter is driven by `JOBICY_MAX_PAGES`:
 
-| `--max-pages` | API `count` |
+| `JOBICY_MAX_PAGES` | API `count` |
 |---------------|-------------|
 | `1` | **100** |
 | `2` | **200** |
@@ -97,6 +98,6 @@ Apply URL fallback: `https://jobicy.com/jobs/{id}`
 ## Notes
 
 - Remote jobs only — not Singapore-government listings like MyCareersFuture.
-- Single fetch per sync; `--max-pages` controls how many jobs are requested (up to 200).
+- Single fetch per sync; `JOBICY_MAX_PAGES` controls how many jobs are requested (up to 200).
 
-See also: [job-ingestion-architecture.md](../job-ingestion-architecture.md)
+See also: [job-ingestion.md](../architecture/job-ingestion.md)

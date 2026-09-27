@@ -142,6 +142,6 @@ On Windows PowerShell, use the same commands after `cd backend` and ensuring `sq
 
 This POC uses **SQLite** by default. Tools like pgAdmin or `psql` connect to a **Postgres server**, not a `.db` file.
 
-Postgres is optional for a future setup via [`docker-compose.yml`](../docker-compose.yml). Until you change `DATABASE_URL` to Postgres and re-run `--init-db`, use a SQLite viewer and `backend/jobportal.db`.
+Postgres is optional for a future setup via [`backend/docker/postgres/docker-compose.yml`](../../backend/docker/postgres/docker-compose.yml). Until you change `DATABASE_URL` to Postgres and re-run `--init-db`, use a SQLite viewer and `backend/jobportal.db`.
 
-See the root [README](../README.md#database) for switching to Postgres later.
+See [Local PostgreSQL (optional)](./postgres-local.md) or the root [README](../../README.md#database) for switching to Postgres later.

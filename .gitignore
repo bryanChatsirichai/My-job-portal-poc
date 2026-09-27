@@ -1,5 +1,6 @@
 .env
 backend/.env
+backend/docker/postgres/.env
 backend/.venv/
 backend/jobportal.db
 frontend/node_modules/

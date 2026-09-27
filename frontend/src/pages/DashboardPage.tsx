@@ -6,8 +6,11 @@ import { DashboardJobCard } from '../components/DashboardJobCard/DashboardJobCar
 import { Button } from '../components/ui/Button/Button';
 import { Input } from '../components/ui/Input/Input';
 import { Pill } from '../components/ui/Pill/Pill';
+import { SourceFilterSelect } from '../components/SourceFilterSelect/SourceFilterSelect';
 import { Select } from '../components/ui/Select/Select';
+import { useJobSources } from '../hooks/useJobSources';
 import { useTrackedApplications } from '../hooks/useTrackedApplications';
+import { getSourceDisplayName } from '../utils/format';
 import type { ApplicationStatus } from '../types/job';
 import { salaryOverlapsRange, STATUS_LABELS } from '../utils/applicationAnalytics';
 import styles from './DashboardPage.module.scss';
@@ -40,6 +43,7 @@ function readShowStatsPreference(): boolean {
 }
 
 export function DashboardPage() {
+  const jobSources = useJobSources();
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
   const [jobQuery, setJobQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
@@ -96,7 +100,7 @@ export function DashboardPage() {
       chips.push({ key: 'jobQuery', label: `"${jobQuery.trim()}"` });
     }
     if (sourceFilter) {
-      chips.push({ key: 'source', label: sourceFilter });
+      chips.push({ key: 'source', label: getSourceDisplayName(sourceFilter) });
     }
     if (salaryMin) {
       chips.push({ key: 'salaryMin', label: `Min ${salaryMin}` });
@@ -194,17 +198,12 @@ export function DashboardPage() {
 
             <label className={styles.field} htmlFor="dashboard-source">
               <span className={styles.fieldLabel}>Source</span>
-              <Select
+              <SourceFilterSelect
                 id="dashboard-source"
                 value={sourceFilter}
-                onChange={(event) => setSourceFilter(event.target.value)}
-              >
-                <option value="">All sources</option>
-                <option value="mycareersfuture">MyCareersFuture</option>
-                <option value="adzuna">Adzuna</option>
-                <option value="jobicy">Jobicy</option>
-                <option value="linkedin">LinkedIn</option>
-              </Select>
+                sources={jobSources}
+                onChange={setSourceFilter}
+              />
             </label>
 
             <label className={styles.field} htmlFor="dashboard-salary-min">

@@ -4,7 +4,7 @@ Step-by-step plan to modernize the job portal frontend **without changing busine
 
 ## Design direction
 
-**Harbor Signal** — calm surfaces, dense scannable job data, one bold accent (signal orange), source colors as information. Full rationale: [00-overview.md](./00-overview.md).
+**Harbor Signal** — calm surfaces, dense scannable job data, one bold accent (signal orange), source colors as information. Full rationale: [overview.md](./overview.md).
 
 ## Constraints
 
@@ -14,7 +14,7 @@ What must stay unchanged: [constraints.md](./constraints.md).
 
 | Step | Document | Status | Finished |
 |------|----------|--------|----------|
-| 0 | [00-prep.md](./00-prep.md) | ✅ Done | 2026-09-11 |
+| 0 | [prep.md](./prep.md) | ✅ Done | 2026-09-11 |
 | 1 | [01-foundation.md](./01-foundation.md) | ✅ Done | 2026-09-11 |
 | 2 | [02-layout-shell.md](./02-layout-shell.md) | ✅ Done | 2026-09-14 |
 | 3 | [03-homepage.md](./03-homepage.md) | ✅ Done | 2026-09-14 |
@@ -28,7 +28,7 @@ Execute steps in sequence. Each step should leave the app buildable and shippabl
 
 | Step | Document | Summary | Depends on |
 |------|----------|---------|------------|
-| 0 | [00-prep.md](./00-prep.md) | Lock decisions, baseline build, progress tracking | — |
+| 0 | [prep.md](./prep.md) | Lock decisions, baseline build, progress tracking | — |
 | 1 | [01-foundation.md](./01-foundation.md) | Design tokens, fonts, mixins, UI primitives | Step 0 |
 | 2 | [02-layout-shell.md](./02-layout-shell.md) | Header, navigation, page shell | Step 1 |
 | 3 | [03-homepage.md](./03-homepage.md) | Search hero, filters, job rows, pagination UI | Steps 1–2 |
@@ -66,4 +66,4 @@ frontend/src/
 ## Related docs
 
 - [Product README](../../README.md)
-- [Job ingestion architecture](../../docs/job-ingestion-architecture.md)
+- [Job ingestion architecture](../../docs/architecture/job-ingestion.md)

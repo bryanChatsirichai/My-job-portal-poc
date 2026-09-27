@@ -5,6 +5,7 @@ from app.models.schemas import CanonicalJobInput
 
 
 def upsert_job(db: Session, job: CanonicalJobInput) -> Job:
+    # Step 10 — match on (source, source_job_id); set status active
     existing = (
         db.query(Job)
         .filter(Job.source == job.source, Job.source_job_id == job.source_job_id)
@@ -46,6 +47,7 @@ def upsert_job(db: Session, job: CanonicalJobInput) -> Job:
 
 
 def expire_stale_jobs(db: Session, source: str, seen_ids: set[str]) -> int:
+    # Step 11 — active rows for this source not in seen_ids → expired
     query = db.query(Job).filter(Job.source == source, Job.status == "active")
     if seen_ids:
         query = query.filter(~Job.source_job_id.in_(seen_ids))

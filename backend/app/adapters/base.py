@@ -21,7 +21,8 @@ class FetchParams:
 
     page: int = 0
     limit: int = 100
-    max_pages: int | None = None
+    max_pages: int | None = None  # from source *_MAX_PAGES in settings; passed to Jobicy for count
+    keywords: str | None = None  # LinkedIn: one search term per sync context
 
 
 class JobSourceAdapter(ABC):
@@ -43,3 +44,11 @@ class JobSourceAdapter(ABC):
     def normalize(self, raw: dict) -> CanonicalJobInput:
         """Map a single upstream record into the canonical job schema."""
         raise NotImplementedError
+
+    def fetch_contexts(self) -> list[str | None]:
+        """Optional extra dimensions before pagination (e.g. one keyword per pass).
+
+        Each entry is passed as ``FetchParams.keywords``. ``None`` means the
+        adapter omits the keywords filter. Default: a single pass with no keyword.
+        """
+        return [None]

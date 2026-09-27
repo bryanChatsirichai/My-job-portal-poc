@@ -155,7 +155,7 @@ Full app containerization is a **future** optional step.
 - [ ] Strong password set and documented securely (password manager, not git)
 - [ ] Backup script tested: dump → restore → `alembic current` matches
 - [ ] `docker compose down` + `up -d` preserves data
-- [ ] README or `docs/deployment.md` references this hardening guide
+- [ ] README or `docs/operations/deployment.md` references this hardening guide
 
 ---
 

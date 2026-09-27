@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.orm import Job
 
-USE_SQLITE = settings.database_url.startswith("sqlite")
+USE_SQLITE = settings.database_backend == "sqlite"
 
 
 def search_jobs(

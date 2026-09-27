@@ -4,14 +4,21 @@ Values are resolved when ``settings = Settings()`` runs at import time.
 
 Priority (highest wins):
   1. Default on each field below
-  2. ``backend/.env`` — loaded because ``env_file=".env"`` (relative to process cwd)
+  2. ``backend/.env`` — always resolved from this package (not process cwd)
   3. OS environment variables
+
+``DATABASE_URL`` is the single switch for worker, API (``get_db``), and Alembic.
 
 Field names map to env vars automatically: ``adzuna_app_key`` → ``ADZUNA_APP_KEY``.
 """
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+_ENV_FILE = _BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -19,7 +26,7 @@ class Settings(BaseSettings):
     #   snake_case field → UPPER_SNAKE_CASE env var (e.g. adzuna_app_key → ADZUNA_APP_KEY).
     # Field() only sets defaults/descriptions; it does not wire the env name.
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -34,12 +41,24 @@ class Settings(BaseSettings):
     jobicy_enabled: bool = True  # JOBICY_ENABLED
     adzuna_enabled: bool = True  # ADZUNA_ENABLED
     linkedin_enabled: bool = True  # LINKEDIN_ENABLED
+    jobspy_enabled: bool = True  # JOBSPY_ENABLED
 
     # --- Sync page sizes ---
     mcf_page_size: int = 100  # MCF_PAGE_SIZE
     adzuna_page_size: int = 50  # ADZUNA_PAGE_SIZE
     jobicy_page_size: int = 200  # JOBICY_PAGE_SIZE
     linkedin_page_size: int = 70  # LINKEDIN_PAGE_SIZE
+    jobspy_page_size: int = 1  # JOBSPY_PAGE_SIZE — one search term per sync page
+
+    # --- Sync page limits (unset = unlimited; fetch until source exhausted) ---
+    mcf_max_pages: int | None = Field(default=None, description="Env MCF_MAX_PAGES")  # MCF_MAX_PAGES
+    adzuna_max_pages: int | None = Field(default=None, description="Env ADZUNA_MAX_PAGES")
+    jobicy_max_pages: int | None = Field(default=None, description="Env JOBICY_MAX_PAGES")
+    linkedin_max_pages: int | None = Field(default=None, description="Env LINKEDIN_MAX_PAGES")
+    jobspy_max_pages: int | None = Field(
+        default=None,
+        description="Env JOBSPY_MAX_PAGES — last 0-based search-term index (inclusive)",
+    )
 
     # --- Adzuna (optional) ---
     # Default "" disables Adzuna; set ADZUNA_APP_ID and ADZUNA_APP_KEY in backend/.env to enable sync.
@@ -62,9 +81,33 @@ class Settings(BaseSettings):
         default="http://localhost:3000/api/v1",
         description="Env LINKEDIN_JOBS_API_URL. Empty = LinkedIn adapter skipped.",
     )
-    linkedin_keywords: str = Field(default="", description="Env LINKEDIN_KEYWORDS")  # LINKEDIN_KEYWORDS
+    linkedin_keywords: str = Field(  # LINKEDIN_KEYWORDS
+        default="",
+        description="Env LINKEDIN_KEYWORDS. Comma-separated = one sync pass per term.",
+    )
+    linkedin_keywords_required: bool = False  # LINKEDIN_KEYWORDS_REQUIRED
+    linkedin_use_analyze: bool = True  # LINKEDIN_USE_ANALYZE — insights incl. salaryRange
+    linkedin_user_skills: str = Field(  # LINKEDIN_USER_SKILLS
+        default="",
+        description="Env LINKEDIN_USER_SKILLS. Comma-separated; used with analyze for match score.",
+    )
     linkedin_location: str = "Singapore"  # LINKEDIN_LOCATION
     linkedin_date_since_posted: str = "past_week"  # LINKEDIN_DATE_SINCE_POSTED
 
+    # --- JobSpy scraper (optional self-hosted sidecar) ---
+    jobspy_api_url: str = Field(  # JOBSPY_API_URL
+        default="http://localhost:8001/v1",
+        description="Env JOBSPY_API_URL. Empty = JobSpy adapter skipped.",
+    )
 
+    @property
+    def database_backend(self) -> str:
+        if self.database_url.startswith("sqlite"):
+            return "sqlite"
+        if self.database_url.startswith("postgresql"):
+            return "postgres"
+        return "other"
+
+
+# Step 0 (import) — settings resolved once per process on first ``from app.config import settings``
 settings = Settings()

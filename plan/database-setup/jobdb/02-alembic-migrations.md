@@ -99,7 +99,7 @@ def init_db() -> None:
 
 ### 1.2.6 Document migration workflow
 
-Add to `README.md` or `docs/database-migrations.md`:
+Add to `README.md` or `docs/development/database-migrations.md`:
 
 | Task | Command |
 |------|---------|

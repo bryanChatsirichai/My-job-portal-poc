@@ -14,7 +14,7 @@ Step-by-step plan to move from SQLite-only local POC toward a deployable setup w
 
 ## Architecture summary
 
-Full rationale and diagrams: [00-overview.md](./00-overview.md).
+Full rationale and diagrams: [overview.md](./overview.md).
 
 ```
 External APIs  →  worker (--sync)  →  jobs table  →  FastAPI  →  React
@@ -48,7 +48,7 @@ flowchart TD
 
 | Step | Document | Status | Finished |
 |------|----------|--------|----------|
-| 1.1 | [jobdb/01-docker-compose.md](./jobdb/01-docker-compose.md) | ⬜ Not started | — |
+| 1.1 | [jobdb/01-docker-compose.md](./jobdb/01-docker-compose.md) | ✅ Done | 2026-09-18 |
 | 1.2 | [jobdb/02-alembic-migrations.md](./jobdb/02-alembic-migrations.md) | ⬜ Not started | — |
 | 1.3 | [jobdb/03-dual-backend-verify.md](./jobdb/03-dual-backend-verify.md) | ⬜ Not started | — |
 | 1.4 | [jobdb/04-production-hardening.md](./jobdb/04-production-hardening.md) | ⬜ Not started | — |
@@ -93,5 +93,5 @@ flowchart TD
 ## Related docs
 
 - [Product README](../../README.md)
-- [Job ingestion architecture](../../docs/job-ingestion-architecture.md)
+- [Job ingestion architecture](../../docs/architecture/job-ingestion.md)
 - [Frontend UI redesign plan](../frontend-ui-redesign/README.md)

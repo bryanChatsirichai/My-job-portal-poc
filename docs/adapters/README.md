@@ -8,12 +8,13 @@ Each adapter fetches listings from an external API, normalizes them, and upserts
 | Jobicy | None | [jobicy.md](./jobicy.md) | `backend/app/adapters/jobicy/` |
 | Adzuna | Free key | [adzuna.md](./adzuna.md) | `backend/app/adapters/adzuna/` |
 | LinkedIn | Self-hosted scraper | [linkedin.md](./linkedin.md) | `backend/app/adapters/linkedin/` |
+| JobSpy | Self-hosted sidecar | [jobspy.md](./jobspy.md) | `backend/app/adapters/jobspy/` |
 
 ## Quick sync (all sources)
 
 ```bash
 cd backend
-uv run python -m app.worker --sync --max-pages 2
+uv run python -m app.worker --sync
 ```
 
-`--max-pages` caps pages **per source** — use for local dev. See [job-ingestion-architecture.md](../job-ingestion-architecture.md) for the full pipeline.
+`*_MAX_PAGES` in `backend/.env` caps pages **per source** — use for local dev. See [job-ingestion.md](../architecture/job-ingestion.md) for the full pipeline.
